@@ -1,0 +1,743 @@
+// ============================================================================
+// FINANCIAL COMMAND CENTER — Schema Prisma
+// Fonte única de verdade financeira. Ver /docs/FINANCIAL_ARCHITECTURE.md
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ----------------------------------------------------------------------------
+// IDENTIDADE, RBAC, AUDITORIA
+// ----------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  FINANCE
+  MANAGER
+  OPERATOR
+  VIEWER
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  passwordHash  String // nunca texto plano
+  role          Role     @default(VIEWER)
+  twoFactorSecret String?
+  twoFactorEnabled Boolean @default(false)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  companyMemberships CompanyMember[]
+  auditLogs          AuditLog[]        @relation("AuditActor")
+  operationsCreated  Operation[]       @relation("OperationCreatedBy")
+  expensesCreated    Expense[]         @relation("ExpenseResponsible")
+  sessions           Session[]
+  notifications      Notification[]
+
+  @@index([email])
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([userId])
+}
+
+// Ligação utilizador <-> empresa, com papel específico por empresa
+model CompanyMember {
+  id        String   @id @default(cuid())
+  userId    String
+  companyId String
+  role      Role
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  company   Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, companyId])
+}
+
+// Registo de auditoria imutável (append-only). Nunca apagar transações.
+model AuditLog {
+  id          String   @id @default(cuid())
+  actorId     String?
+  actor       User?    @relation("AuditActor", fields: [actorId], references: [id])
+  entityType  String // ex: "Operation", "Expense", "Account"
+  entityId    String
+  action      String // CREATE | UPDATE | REVERSE | CANCEL | CORRECT
+  reason      String?
+  previousValue Json?
+  newValue      Json?
+  ipAddress   String?
+  device      String?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+}
+
+// ----------------------------------------------------------------------------
+// EMPRESAS
+// ----------------------------------------------------------------------------
+
+model Company {
+  id            String   @id @default(cuid())
+  name          String
+  taxId         String? // NIF
+  baseCurrency  String // ISO code, ex: AOA
+  isPersonal    Boolean  @default(false) // "Operações pessoais"
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  members         CompanyMember[]
+  accounts        Account[]
+  wallets         Wallet[]
+  operations      Operation[]
+  expenses        Expense[]
+  revenues        Revenue[]
+  sales           Sale[]
+  customers       Customer[]
+  savingsGoals    SavingsGoal[]
+  receivables     Receivable[]
+  payables        Payable[]
+  reconciliations Reconciliation[]
+  ledgerAccounts  LedgerAccount[]
+  budgets         Budget[]
+
+  @@index([isActive])
+}
+
+// ----------------------------------------------------------------------------
+// MOEDAS E CÂMBIO
+// ----------------------------------------------------------------------------
+
+model Currency {
+  code        String  @id // AOA, USD, EUR, USDT...
+  name        String
+  symbol      String
+  decimals    Int     @default(2)
+  isCrypto    Boolean @default(false)
+  isActive    Boolean @default(true)
+
+  ratesFrom ExchangeRate[] @relation("RateFromCurrency")
+  ratesTo   ExchangeRate[] @relation("RateToCurrency")
+}
+
+// Histórico de taxas de câmbio. Nunca sobrescrever — cada operação referencia
+// a taxa exata usada no momento (ver campos exchangeRate em cada lançamento).
+model ExchangeRate {
+  id         String   @id @default(cuid())
+  fromCode   String
+  toCode     String
+  from       Currency @relation("RateFromCurrency", fields: [fromCode], references: [code])
+  to         Currency @relation("RateToCurrency", fields: [toCode], references: [code])
+  rate       Decimal  @db.Decimal(24, 10)
+  source     String? // manual, API, banco X
+  effectiveAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@index([fromCode, toCode, effectiveAt])
+}
+
+// ----------------------------------------------------------------------------
+// CONTAS, CARTEIRAS, LEDGER (dupla entrada)
+// ----------------------------------------------------------------------------
+
+enum AccountType {
+  BANK
+  DIGITAL_WALLET
+  CRYPTO_WALLET
+  CASH
+  PAYMENT_ACCOUNT
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+  CLOSED
+}
+
+model Account {
+  id             String        @id @default(cuid())
+  companyId      String
+  company        Company       @relation(fields: [companyId], references: [id])
+  name           String
+  institution    String?
+  type           AccountType
+  currency       String
+  openingBalance Decimal       @default(0) @db.Decimal(24, 6)
+  status         AccountStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  ledgerAccount   LedgerAccount?
+  reconciliations Reconciliation[]
+
+  @@index([companyId])
+}
+
+model Wallet {
+  id             String        @id @default(cuid())
+  companyId      String
+  company        Company       @relation(fields: [companyId], references: [id])
+  name           String
+  currency       String
+  isCrypto       Boolean       @default(false)
+  openingBalance Decimal       @default(0) @db.Decimal(24, 6)
+  status         AccountStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now())
+
+  ledgerAccount LedgerAccount?
+
+  @@index([companyId])
+}
+
+// Categorias do plano de contas interno do ledger (não confundir com Account bancária)
+enum LedgerAccountKind {
+  BANK_ACCOUNT
+  WALLET
+  WORKING_CAPITAL
+  RESERVED_CAPITAL
+  SAVINGS
+  RECEIVABLE
+  PAYABLE
+  REVENUE
+  EXPENSE
+  EQUITY
+  CLEARING // conta técnica intermediária para conversões/operações
+}
+
+// Uma LedgerAccount é o "nó" no grafo de dupla entrada. Pode espelhar uma
+// Account/Wallet real, ou ser puramente lógica (ex: WORKING_CAPITAL, EQUITY).
+model LedgerAccount {
+  id         String            @id @default(cuid())
+  companyId  String
+  company    Company           @relation(fields: [companyId], references: [id])
+  kind       LedgerAccountKind
+  currency   String
+  name       String
+
+  accountId  String?           @unique
+  account    Account?          @relation(fields: [accountId], references: [id])
+  walletId   String?           @unique
+  wallet     Wallet?           @relation(fields: [walletId], references: [id])
+
+  entries    LedgerEntry[]
+  createdAt  DateTime          @default(now())
+
+  @@index([companyId, kind])
+}
+
+enum LedgerEntryDirection {
+  DEBIT
+  CREDIT
+}
+
+// Lançamento atómico de dupla entrada. Toda a "verdade" de saldo deriva daqui
+// (SUM(credit) - SUM(debit) por LedgerAccount), nunca de um campo "balance"
+// editado diretamente no frontend ou backend.
+model LedgerEntry {
+  id              String               @id @default(cuid())
+  ledgerAccountId String
+  ledgerAccount   LedgerAccount        @relation(fields: [ledgerAccountId], references: [id])
+  direction       LedgerEntryDirection
+  amount          Decimal              @db.Decimal(24, 6) // sempre positivo; sinal vem de direction
+  currency        String
+  operationId     String?
+  operation       Operation?           @relation(fields: [operationId], references: [id])
+  reference       String? // texto livre / nº documento
+  memo            String?
+  reversedById    String?              @unique
+  reversalOf      LedgerEntry?         @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversalOfId    String?              @unique
+  reversal        LedgerEntry?         @relation("Reversal")
+  createdAt       DateTime             @default(now())
+
+  @@index([ledgerAccountId, createdAt])
+  @@index([operationId])
+}
+
+// ----------------------------------------------------------------------------
+// OPERAÇÃO — entidade central. Toda movimentação financeira liga-se aqui.
+// ----------------------------------------------------------------------------
+
+enum OperationType {
+  ARBITRAGE_FX
+  CARD_TOPUP
+  CRYPTO_FIAT
+  SALE
+  EXPENSE
+  REVENUE
+  TRANSFER
+  ADJUSTMENT
+}
+
+enum OperationStatus {
+  PLANNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  REVERSED
+}
+
+model Operation {
+  id            String          @id @default(cuid())
+  code          String          @unique // OP-2026-000001
+  type          OperationType
+  status        OperationStatus @default(PLANNED)
+  companyId     String
+  company       Company         @relation(fields: [companyId], references: [id])
+  customerId    String?
+  customer      Customer?       @relation(fields: [customerId], references: [id])
+
+  currency         String // moeda original do capital principal da operação
+  capitalAmount    Decimal  @db.Decimal(24, 6)
+  costAmount       Decimal  @default(0) @db.Decimal(24, 6)
+  revenueAmount    Decimal  @default(0) @db.Decimal(24, 6)
+  grossProfit      Decimal  @default(0) @db.Decimal(24, 6)
+  netProfit        Decimal  @default(0) @db.Decimal(24, 6)
+  referenceCurrency String  @default("AOA") // moeda de consolidação
+  fxRateToReference Decimal? @db.Decimal(24, 10)
+
+  occurredAt    DateTime  @default(now())
+  createdById   String
+  createdBy     User      @relation("OperationCreatedBy", fields: [createdById], references: [id])
+  notes         String?
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  arbitrage      ArbitrageOperation?
+  cardOperation  CardOperation?
+  cryptoOperation CryptoFiatOperation?
+  sale           Sale?
+  ledgerEntries  LedgerEntry[]
+  documents      Document[]
+
+  @@index([companyId, type, status])
+  @@index([occurredAt])
+}
+
+// ----------------------------------------------------------------------------
+// ARBITRAGEM CAMBIAL
+// ----------------------------------------------------------------------------
+
+enum ArbitrageStatus {
+  PLANNED
+  EXECUTING
+  COMPLETED
+  CANCELLED
+}
+
+model ArbitrageOperation {
+  id             String          @id @default(cuid())
+  operationId    String          @unique
+  operation      Operation       @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  originCurrency String
+  destCurrency   String
+  capitalUsed    Decimal         @db.Decimal(24, 6)
+  buyRate        Decimal         @db.Decimal(24, 10)
+  sellRate       Decimal         @db.Decimal(24, 10)
+  quantity       Decimal         @db.Decimal(24, 6)
+  costs          Decimal         @default(0) @db.Decimal(24, 6)
+  commissions    Decimal         @default(0) @db.Decimal(24, 6)
+  fees           Decimal         @default(0) @db.Decimal(24, 6)
+  finalRevenue   Decimal         @db.Decimal(24, 6)
+  grossProfit    Decimal         @db.Decimal(24, 6)
+  netProfit      Decimal         @db.Decimal(24, 6)
+  marginPercent  Decimal         @db.Decimal(9, 4)
+  roiPercent     Decimal         @db.Decimal(9, 4)
+  counterparty   String?
+  status         ArbitrageStatus @default(PLANNED)
+  notes          String?
+
+  createdAt DateTime @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// CARTÕES (sem dados sensíveis — apenas tokens/referências internas)
+// ----------------------------------------------------------------------------
+
+enum CardNetwork {
+  VISA
+  MASTERCARD
+  OTHER
+}
+
+model CardOperation {
+  id              String      @id @default(cuid())
+  operationId     String      @unique
+  operation       Operation   @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  customerId      String
+  customer        Customer    @relation(fields: [customerId], references: [id])
+  cardToken       String // referência interna tokenizada — nunca PAN/CVV/PIN
+  network         CardNetwork
+  loadedAmount    Decimal     @db.Decimal(24, 6)
+  currency        String
+  operationCost   Decimal     @default(0) @db.Decimal(24, 6)
+  commissionCharged Decimal   @default(0) @db.Decimal(24, 6)
+  receivedAmount  Decimal     @db.Decimal(24, 6)
+  profit          Decimal     @db.Decimal(24, 6)
+  notes           String?
+  createdAt       DateTime    @default(now())
+}
+
+// Plafond / limite operacional — apenas registo e gestão, nunca execução automática
+enum LimitStatus {
+  ACTIVE
+  EXHAUSTED
+  EXPIRED
+  CANCELLED
+}
+
+model LimitAllocation {
+  id                String      @id @default(cuid())
+  customerId        String
+  customer          Customer    @relation(fields: [customerId], references: [id])
+  limitAmount       Decimal     @db.Decimal(24, 6)
+  usedAmount        Decimal     @default(0) @db.Decimal(24, 6)
+  currency          String
+  startDate         DateTime
+  endDate           DateTime?
+  commission        Decimal     @default(0) @db.Decimal(24, 6)
+  result            Decimal     @default(0) @db.Decimal(24, 6)
+  status            LimitStatus @default(ACTIVE)
+  usageHistory      LimitUsage[]
+  createdAt         DateTime    @default(now())
+}
+
+model LimitUsage {
+  id                String          @id @default(cuid())
+  limitAllocationId String
+  limitAllocation   LimitAllocation @relation(fields: [limitAllocationId], references: [id], onDelete: Cascade)
+  amount            Decimal         @db.Decimal(24, 6)
+  description       String?
+  usedAt            DateTime        @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// OPERAÇÕES CRIPTO / FIAT (USDT etc — apenas gestão/reconciliação)
+// ----------------------------------------------------------------------------
+
+model CryptoFiatOperation {
+  id              String    @id @default(cuid())
+  operationId     String    @unique
+  operation       Operation @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  fiatCurrency    String
+  fiatAmount      Decimal   @db.Decimal(24, 6)
+  cryptoAsset     String // USDT, etc
+  quantityReceived Decimal  @db.Decimal(24, 10)
+  conversionRate  Decimal   @db.Decimal(24, 10)
+  fees            Decimal   @default(0) @db.Decimal(24, 6)
+  netQuantity     Decimal   @db.Decimal(24, 10)
+  sellPrice       Decimal?  @db.Decimal(24, 10)
+  saleRevenue     Decimal?  @db.Decimal(24, 6)
+  profitLoss      Decimal?  @db.Decimal(24, 6)
+  exchangePlatform String?
+  txId            String? // TXID quando aplicável — nunca chaves privadas/seed
+  notes           String?
+  createdAt       DateTime  @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// VENDAS AO CONSUMIDOR FINAL
+// ----------------------------------------------------------------------------
+
+enum SaleStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+model Sale {
+  id            String     @id @default(cuid())
+  operationId   String     @unique
+  operation     Operation  @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  companyId     String
+  company       Company    @relation(fields: [companyId], references: [id])
+  customerId    String
+  customer      Customer   @relation(fields: [customerId], references: [id])
+  productName   String
+  quantity      Decimal    @default(1) @db.Decimal(14, 4)
+  unitPrice     Decimal    @db.Decimal(24, 6)
+  currency      String
+  cost          Decimal    @default(0) @db.Decimal(24, 6)
+  revenue       Decimal    @db.Decimal(24, 6)
+  margin        Decimal    @db.Decimal(24, 6)
+  profit        Decimal    @db.Decimal(24, 6)
+  paymentMethod String?
+  status        SaleStatus @default(PENDING)
+  occurredAt    DateTime   @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// RECEITAS
+// ----------------------------------------------------------------------------
+
+model Revenue {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  description String
+  category    String
+  amount      Decimal  @db.Decimal(24, 6)
+  currency    String
+  occurredAt  DateTime @default(now())
+  operationId String?
+
+  @@index([companyId, occurredAt])
+}
+
+// ----------------------------------------------------------------------------
+// DESPESAS
+// ----------------------------------------------------------------------------
+
+enum ExpenseCategory {
+  OPERATIONAL
+  MARKETING
+  ADVERTISING
+  SALARIES
+  TRANSPORT
+  COMMISSIONS
+  BANK_FEES
+  PLATFORM_FEES
+  TECHNOLOGY
+  OFFICE
+  TAXES
+  SUPPLIERS
+  FINANCIAL
+  OTHER
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  companyId     String
+  company       Company         @relation(fields: [companyId], references: [id])
+  category      ExpenseCategory
+  description   String
+  amount        Decimal         @db.Decimal(24, 6)
+  currency      String
+  occurredAt    DateTime        @default(now())
+  paymentMethod String?
+  accountId     String?
+  responsibleId String
+  responsible   User            @relation("ExpenseResponsible", fields: [responsibleId], references: [id])
+  notes         String?
+  operationId   String?
+
+  @@index([companyId, category, occurredAt])
+}
+
+model Budget {
+  id         String          @id @default(cuid())
+  companyId  String
+  company    Company         @relation(fields: [companyId], references: [id])
+  category   ExpenseCategory
+  monthlyCap Decimal         @db.Decimal(24, 6)
+  currency   String
+
+  @@unique([companyId, category, currency])
+}
+
+// ----------------------------------------------------------------------------
+// POUPANÇAS
+// ----------------------------------------------------------------------------
+
+enum SavingsGoalType {
+  EMERGENCY_FUND
+  NEW_COMPANY_CAPITAL
+  EQUIPMENT
+  EXPANSION
+  INVESTMENT
+  PERSONAL
+}
+
+model SavingsGoal {
+  id           String            @id @default(cuid())
+  companyId    String
+  company      Company           @relation(fields: [companyId], references: [id])
+  type         SavingsGoalType
+  name         String
+  targetAmount Decimal           @db.Decimal(24, 6)
+  currentAmount Decimal          @default(0) @db.Decimal(24, 6)
+  currency     String
+  targetDate   DateTime?
+  createdAt    DateTime          @default(now())
+
+  contributions SavingsContribution[]
+}
+
+model SavingsContribution {
+  id            String      @id @default(cuid())
+  savingsGoalId String
+  savingsGoal   SavingsGoal @relation(fields: [savingsGoalId], references: [id], onDelete: Cascade)
+  amount        Decimal     @db.Decimal(24, 6)
+  note          String?
+  contributedAt DateTime    @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// CONTAS A RECEBER / A PAGAR
+// ----------------------------------------------------------------------------
+
+enum ReceivableStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  WRITTEN_OFF
+}
+
+model Receivable {
+  id          String           @id @default(cuid())
+  companyId   String
+  company     Company          @relation(fields: [companyId], references: [id])
+  customerId  String
+  customer    Customer         @relation(fields: [customerId], references: [id])
+  amount      Decimal          @db.Decimal(24, 6)
+  amountPaid  Decimal          @default(0) @db.Decimal(24, 6)
+  currency    String
+  dueDate     DateTime
+  status      ReceivableStatus @default(OPEN)
+  description String?
+  createdAt   DateTime         @default(now())
+
+  @@index([companyId, status, dueDate])
+}
+
+enum PayableStatus {
+  OPEN
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+model Payable {
+  id          String        @id @default(cuid())
+  companyId   String
+  company     Company       @relation(fields: [companyId], references: [id])
+  supplierName String
+  amount      Decimal       @db.Decimal(24, 6)
+  amountPaid  Decimal       @default(0) @db.Decimal(24, 6)
+  currency    String
+  dueDate     DateTime
+  status      PayableStatus @default(OPEN)
+  description String?
+  createdAt   DateTime      @default(now())
+
+  @@index([companyId, status, dueDate])
+}
+
+// ----------------------------------------------------------------------------
+// CLIENTES (CRM financeiro)
+// ----------------------------------------------------------------------------
+
+enum CustomerRisk {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+model Customer {
+  id         String       @id @default(cuid())
+  companyId  String
+  company    Company      @relation(fields: [companyId], references: [id])
+  name       String
+  contact    String?
+  risk       CustomerRisk @default(LOW)
+  isActive   Boolean      @default(true)
+  createdAt  DateTime     @default(now())
+
+  operations      Operation[]
+  sales           Sale[]
+  cardOperations  CardOperation[]
+  limitAllocations LimitAllocation[]
+  receivables     Receivable[]
+  documents       Document[]
+
+  @@index([companyId])
+}
+
+// ----------------------------------------------------------------------------
+// RECONCILIAÇÃO
+// ----------------------------------------------------------------------------
+
+enum ReconciliationStatus {
+  RECONCILED
+  DIFFERENCE_FOUND
+  UNDER_REVIEW
+}
+
+model Reconciliation {
+  id            String                @id @default(cuid())
+  companyId     String
+  company       Company               @relation(fields: [companyId], references: [id])
+  accountId     String
+  account       Account               @relation(fields: [accountId], references: [id])
+  systemBalance Decimal               @db.Decimal(24, 6)
+  realBalance   Decimal               @db.Decimal(24, 6)
+  difference    Decimal               @db.Decimal(24, 6)
+  status        ReconciliationStatus  @default(UNDER_REVIEW)
+  notes         String?
+  reconciledAt  DateTime              @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// DOCUMENTOS
+// ----------------------------------------------------------------------------
+
+model Document {
+  id          String     @id @default(cuid())
+  url         String // referência no storage (S3/R2/Cloudinary)
+  filename    String
+  mimeType    String
+  operationId String?
+  operation   Operation? @relation(fields: [operationId], references: [id])
+  customerId  String?
+  customer    Customer?  @relation(fields: [customerId], references: [id])
+  uploadedAt  DateTime   @default(now())
+}
+
+// ----------------------------------------------------------------------------
+// NOTIFICAÇÕES / ALERTAS
+// ----------------------------------------------------------------------------
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+model Notification {
+  id        String               @id @default(cuid())
+  userId    String
+  user      User                 @relation(fields: [userId], references: [id])
+  type      String // CAPITAL_BELOW_MIN, BUDGET_EXCEEDED, OPERATION_LOSS, etc.
+  severity  NotificationSeverity @default(INFO)
+  message   String
+  isRead    Boolean              @default(false)
+  createdAt DateTime             @default(now())
+
+  @@index([userId, isRead])
+}
