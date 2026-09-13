@@ -138,8 +138,8 @@ para produção (histórico auditável de alterações ao schema).
 | P4 | Receitas + Despesas (CRUD completo, categorias, orçamento) | ✅ Entregue |
 | P5 | Motor de Operações (formulários genéricos) | ✅ Entregue |
 | P6 | Arbitragem (CRUD + UI) | ✅ Entregue |
-| P7 | Cartões + Plafond/Limites | ⏳ Próxima |
-| P8 | Capital de Giro (indicador de capacidade operacional) | ⏳ |
+| P7 | Cartões + Plafond/Limites | ✅ Entregue |
+| P8 | Capital de Giro (indicador de capacidade operacional) | ⏳ Próxima |
 | P9 | Poupanças (objetivos + contribuições) | ⏳ |
 | P10 | P&L + Cash Flow (relatórios completos, previsão 7/30/60/90) | 🔶 Base entregue |
 | P11 | Analytics (score de performance, ranking) | 🔶 Base entregue |
