@@ -5,6 +5,8 @@ const LINKS = [
   { href: "/empresas", label: "Empresas" },
   { href: "/contas", label: "Contas" },
   { href: "/carteiras", label: "Carteiras" },
+  { href: "/receitas", label: "Receitas" },
+  { href: "/despesas", label: "Despesas" },
   { href: "/reconciliacao", label: "Reconciliação" },
 ];
 

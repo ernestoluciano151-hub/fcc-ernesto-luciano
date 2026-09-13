@@ -135,8 +135,8 @@ para produção (histórico auditável de alterações ao schema).
 | P1 | Schema Prisma completo + Ledger engine | ✅ Entregue (fundação) |
 | P2 | Dashboard executivo com dados reais | 🔶 Primeira versão entregue |
 | P3 | Contas + Carteiras (CRUD, reconciliação) | ✅ Entregue |
-| P4 | Receitas + Despesas (CRUD completo, categorias, orçamento) | ⏳ Próxima |
-| P5 | Motor de Operações (formulários genéricos) | ⏳ |
+| P4 | Receitas + Despesas (CRUD completo, categorias, orçamento) | ✅ Entregue |
+| P5 | Motor de Operações (formulários genéricos) | ⏳ Próxima |
 | P6 | Arbitragem (CRUD + UI) | ⏳ (server action de referência entregue) |
 | P7 | Cartões + Plafond/Limites | ⏳ |
 | P8 | Capital de Giro (indicador de capacidade operacional) | ⏳ |
