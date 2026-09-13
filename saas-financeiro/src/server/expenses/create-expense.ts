@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { postLedgerBatch, getOrCreateLogicalLedgerAccount } from "@/lib/ledger/ledger-engine";
 import { money } from "@/lib/finance/money";
 import { getDefaultUserId } from "@/server/finance/get-default-user";
+import { getWorkingCapitalSummary } from "@/lib/finance/working-capital";
 
 const EXPENSE_CATEGORIES = [
   "OPERATIONAL","MARKETING","ADVERTISING","SALARIES","TRANSPORT","COMMISSIONS",
@@ -104,7 +105,18 @@ export async function createExpense(
     }
   }
 
+  // Alerta de capital abaixo do mínimo (secção 20 + 12) — verifica após a saída de caixa.
+  const capitalSummary = await getWorkingCapitalSummary({ companyIds: [data.companyId] });
+  if (capitalSummary.capitalLivre.lessThan(capitalSummary.capitalMinimoRecomendado)) {
+    const capitalWarning = `Capital livre (${capitalSummary.capitalLivre.toFixed(2)} ${capitalSummary.referenceCurrency}) está abaixo do mínimo recomendado (${capitalSummary.capitalMinimoRecomendado.toFixed(2)} ${capitalSummary.referenceCurrency}).`;
+    warning = warning ? `${warning} ${capitalWarning}` : capitalWarning;
+    await prisma.notification.create({
+      data: { userId: responsibleId, type: "CAPITAL_BELOW_MIN", severity: "CRITICAL", message: capitalWarning },
+    });
+  }
+
   revalidatePath("/despesas");
   revalidatePath("/dashboard");
+  revalidatePath("/capital-giro");
   return { success: true, warning };
 }

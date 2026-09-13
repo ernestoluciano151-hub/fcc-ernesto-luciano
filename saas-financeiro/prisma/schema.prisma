@@ -102,6 +102,7 @@ model Company {
   taxId         String? // NIF
   baseCurrency  String // ISO code, ex: AOA
   isPersonal    Boolean  @default(false) // "Operações pessoais"
+  minRecommendedCapital Decimal @default(0) @db.Decimal(24, 6) // capital mínimo recomendado (secção 12)
   isActive      Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
