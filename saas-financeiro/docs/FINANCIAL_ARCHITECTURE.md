@@ -110,6 +110,23 @@ mais o ledger:
 4. **Sem testes automáticos ainda** (P14) — a prioridade nesta fase foi ter
    um motor de cálculo correto e sem duplicação.
 
+## 8b. Nota sobre migrações da base de dados
+
+Como não foi possível correr `npx prisma generate`/`migrate dev` no ambiente
+cloud (secção 8, ponto 3), o `build` do Vercel usa `prisma db push` em vez de
+`prisma migrate deploy`: aplica o schema diretamente na base de dados a cada
+deploy, sem histórico de migrações versionado. Funciona bem nesta fase
+inicial, mas assim que possível corre localmente (no teu computador, com
+`DATABASE_URL` a apontar para a mesma base):
+
+```bash
+npx prisma migrate dev --name init
+```
+
+Isto gera a pasta `prisma/migrations/`; depois disso muda o script `build`
+de volta para `prisma migrate deploy && next build`, que é a prática correta
+para produção (histórico auditável de alterações ao schema).
+
 ## 9. Fases (roadmap completo)
 
 | Fase | Conteúdo | Estado |
