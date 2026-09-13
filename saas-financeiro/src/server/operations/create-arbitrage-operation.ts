@@ -1,17 +1,18 @@
 "use server";
 
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { add, div, mul, percent, sub, money } from "@/lib/finance/money";
+import { add, percent, sub } from "@/lib/finance/money";
 import { generateOperationCode } from "@/lib/finance/operation-code";
 import { getOrCreateLogicalLedgerAccount, postLedgerBatch } from "@/lib/ledger/ledger-engine";
+import { getDefaultUserId } from "@/server/finance/get-default-user";
 
 // ============================================================================
-// Exemplo de referência do PRINCÍPIO FUNDAMENTAL (secção 26 do pedido):
-// registar UMA operação de arbitragem alimenta automaticamente:
+// PRINCÍPIO FUNDAMENTAL (secção 26 do pedido): registar UMA operação de
+// arbitragem alimenta automaticamente:
 //   - Capital (reduzido/comprometido via ledger)
-//   - Receita (Revenue)
-//   - Despesa/custos (Expense, se aplicável)
+//   - Receita (Revenue) e custos
 //   - Lucro (calculado, nunca digitado)
 //   - Ledger (lançamentos equilibrados)
 //   - Dashboard / P&L / Cash Flow (derivam do ledger, sem escrita duplicada)
@@ -21,24 +22,50 @@ import { getOrCreateLogicalLedgerAccount, postLedgerBatch } from "@/lib/ledger/l
 const ArbitrageInput = z.object({
   companyId: z.string(),
   customerId: z.string().optional(),
-  createdById: z.string(),
-  originCurrency: z.string(),
-  destCurrency: z.string(),
+  originCurrency: z.string().min(1),
+  destCurrency: z.string().min(1),
   referenceCurrency: z.string().default("AOA"),
-  capitalUsed: z.number().positive(),
-  buyRate: z.number().positive(),
-  sellRate: z.number().positive(),
-  quantity: z.number().positive(),
-  costs: z.number().min(0).default(0),
-  commissions: z.number().min(0).default(0),
-  fees: z.number().min(0).default(0),
-  finalRevenue: z.number().positive(),
+  capitalUsed: z.coerce.number().positive(),
+  buyRate: z.coerce.number().positive(),
+  sellRate: z.coerce.number().positive(),
+  quantity: z.coerce.number().positive(),
+  costs: z.coerce.number().min(0).default(0),
+  commissions: z.coerce.number().min(0).default(0),
+  fees: z.coerce.number().min(0).default(0),
+  finalRevenue: z.coerce.number().positive(),
   counterparty: z.string().optional(),
   notes: z.string().optional(),
 });
 
-export async function createArbitrageOperation(input: z.infer<typeof ArbitrageInput>) {
-  const data = ArbitrageInput.parse(input);
+export type ArbitrageState = { error?: string; success?: boolean; code?: string; netProfit?: string; roiPercent?: string };
+
+export async function createArbitrageOperation(
+  _prevState: ArbitrageState,
+  formData: FormData
+): Promise<ArbitrageState> {
+  const parsed = ArbitrageInput.safeParse({
+    companyId: formData.get("companyId"),
+    customerId: formData.get("customerId") || undefined,
+    originCurrency: formData.get("originCurrency"),
+    destCurrency: formData.get("destCurrency"),
+    referenceCurrency: formData.get("referenceCurrency") || "AOA",
+    capitalUsed: formData.get("capitalUsed"),
+    buyRate: formData.get("buyRate"),
+    sellRate: formData.get("sellRate"),
+    quantity: formData.get("quantity"),
+    costs: formData.get("costs") || 0,
+    commissions: formData.get("commissions") || 0,
+    fees: formData.get("fees") || 0,
+    finalRevenue: formData.get("finalRevenue"),
+    counterparty: formData.get("counterparty") || undefined,
+    notes: formData.get("notes") || undefined,
+  });
+
+  if (!parsed.success) {
+    return { error: parsed.error.issues.map((i) => i.message).join("; ") };
+  }
+  const data = parsed.data;
+  const createdById = await getDefaultUserId();
 
   const totalCosts = add(add(data.costs, data.commissions), data.fees);
   const grossProfit = sub(data.finalRevenue, data.capitalUsed);
@@ -48,7 +75,7 @@ export async function createArbitrageOperation(input: z.infer<typeof ArbitrageIn
 
   const code = await generateOperationCode();
 
-  return prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx) => {
     const operation = await tx.operation.create({
       data: {
         code,
@@ -63,7 +90,7 @@ export async function createArbitrageOperation(input: z.infer<typeof ArbitrageIn
         grossProfit: grossProfit.toFixed(6),
         netProfit: netProfit.toFixed(6),
         referenceCurrency: data.referenceCurrency,
-        createdById: data.createdById,
+        createdById,
         notes: data.notes,
       },
     });
@@ -91,9 +118,6 @@ export async function createArbitrageOperation(input: z.infer<typeof ArbitrageIn
       },
     });
 
-    // --- Ledger: capital sai de WORKING_CAPITAL, entra em CLEARING, depois
-    // resultado (receita) entra de volta em WORKING_CAPITAL líquido do lucro.
-    // Simplificado aqui em duas pernas equilibradas por moeda de referência.
     const workingCapital = await getOrCreateLogicalLedgerAccount({
       companyId: data.companyId,
       kind: "WORKING_CAPITAL",
@@ -120,10 +144,8 @@ export async function createArbitrageOperation(input: z.infer<typeof ArbitrageIn
       {
         operationId: operation.id,
         lines: [
-          // Receita da operação entra no capital de giro
           { ledgerAccountId: workingCapital.id, direction: "DEBIT", amount: data.finalRevenue, currency: data.originCurrency, reference: code },
           { ledgerAccountId: revenueAccount.id, direction: "CREDIT", amount: data.finalRevenue, currency: data.originCurrency, reference: code },
-          // Capital utilizado e custos saem do capital de giro
           { ledgerAccountId: expenseAccount.id, direction: "DEBIT", amount: totalCosts.plus(data.capitalUsed), currency: data.originCurrency, reference: code },
           { ledgerAccountId: workingCapital.id, direction: "CREDIT", amount: totalCosts.plus(data.capitalUsed), currency: data.originCurrency, reference: code },
         ],
@@ -131,8 +153,6 @@ export async function createArbitrageOperation(input: z.infer<typeof ArbitrageIn
       tx
     );
 
-    // Receita e despesa também alimentam as tabelas dedicadas (para relatórios
-    // e filtros por categoria) — mas o SALDO nunca vem daqui, vem do ledger.
     await tx.revenue.create({
       data: {
         companyId: data.companyId,
@@ -146,14 +166,17 @@ export async function createArbitrageOperation(input: z.infer<typeof ArbitrageIn
 
     await tx.auditLog.create({
       data: {
-        actorId: data.createdById,
+        actorId: createdById,
         entityType: "Operation",
         entityId: operation.id,
         action: "CREATE",
         newValue: { code, type: "ARBITRAGE_FX", netProfit: netProfit.toFixed(6) },
       },
     });
-
-    return { operation, netProfit: netProfit.toFixed(6), marginPercent: marginPercent.toFixed(2), roiPercent: roiPercent.toFixed(2) };
   });
+
+  revalidatePath("/operacoes");
+  revalidatePath("/arbitragem");
+  revalidatePath("/dashboard");
+  return { success: true, code, netProfit: netProfit.toFixed(2), roiPercent: roiPercent.toFixed(2) };
 }

@@ -136,9 +136,9 @@ para produção (histórico auditável de alterações ao schema).
 | P2 | Dashboard executivo com dados reais | 🔶 Primeira versão entregue |
 | P3 | Contas + Carteiras (CRUD, reconciliação) | ✅ Entregue |
 | P4 | Receitas + Despesas (CRUD completo, categorias, orçamento) | ✅ Entregue |
-| P5 | Motor de Operações (formulários genéricos) | ⏳ Próxima |
-| P6 | Arbitragem (CRUD + UI) | ⏳ (server action de referência entregue) |
-| P7 | Cartões + Plafond/Limites | ⏳ |
+| P5 | Motor de Operações (formulários genéricos) | ✅ Entregue |
+| P6 | Arbitragem (CRUD + UI) | ✅ Entregue |
+| P7 | Cartões + Plafond/Limites | ⏳ Próxima |
 | P8 | Capital de Giro (indicador de capacidade operacional) | ⏳ |
 | P9 | Poupanças (objetivos + contribuições) | ⏳ |
 | P10 | P&L + Cash Flow (relatórios completos, previsão 7/30/60/90) | 🔶 Base entregue |
