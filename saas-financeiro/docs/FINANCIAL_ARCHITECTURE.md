@@ -117,8 +117,8 @@ mais o ledger:
 | P0 | Arquitetura financeira (este documento) | ✅ Entregue |
 | P1 | Schema Prisma completo + Ledger engine | ✅ Entregue (fundação) |
 | P2 | Dashboard executivo com dados reais | 🔶 Primeira versão entregue |
-| P3 | Contas + Carteiras (CRUD, reconciliação) | ⏳ Próxima |
-| P4 | Receitas + Despesas (CRUD completo, categorias, orçamento) | ⏳ |
+| P3 | Contas + Carteiras (CRUD, reconciliação) | ✅ Entregue |
+| P4 | Receitas + Despesas (CRUD completo, categorias, orçamento) | ⏳ Próxima |
 | P5 | Motor de Operações (formulários genéricos) | ⏳ |
 | P6 | Arbitragem (CRUD + UI) | ⏳ (server action de referência entregue) |
 | P7 | Cartões + Plafond/Limites | ⏳ |
