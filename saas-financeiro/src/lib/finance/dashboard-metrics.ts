@@ -11,7 +11,7 @@ import type { LedgerAccountKind } from "@prisma/client";
 
 export type Period = "today" | "week" | "month" | "3m" | "6m" | "year";
 
-function periodStart(period: Period): Date {
+export function periodStart(period: Period): Date {
   const now = new Date();
   switch (period) {
     case "today": {
@@ -48,7 +48,7 @@ function periodStart(period: Period): Date {
 }
 
 /** Soma multi-moeda -> single number na moeda de referência, usando taxas mais recentes. */
-async function sumToReference(byCurrency: Map<string, Money>, referenceCurrency: string): Promise<Money> {
+export async function sumToReference(byCurrency: Map<string, Money>, referenceCurrency: string): Promise<Money> {
   let total = ZERO;
   for (const [currency, amount] of byCurrency) {
     if (currency === referenceCurrency) {
@@ -178,22 +178,35 @@ export async function getResultBycompany(referenceCurrency = "AOA") {
 }
 
 /** Previsão de caixa simples (extrapolação linear da média diária de entradas/saídas). */
-export async function getCashFlowForecast(days: 7 | 30 | 60 | 90, companyIds?: string[]) {
+export async function getCashFlowForecast(
+  days: 7 | 30 | 60 | 90,
+  companyIds?: string[],
+  referenceCurrency = "AOA"
+) {
   const companyFilter = companyIds?.length ? { companyId: { in: companyIds } } : {};
   const since = new Date();
   since.setDate(since.getDate() - 30);
 
-  const [revenue30d, expense30d] = await Promise.all([
-    prisma.revenue.aggregate({ where: { ...companyFilter, occurredAt: { gte: since } }, _sum: { amount: true } }),
-    prisma.expense.aggregate({ where: { ...companyFilter, occurredAt: { gte: since } }, _sum: { amount: true } }),
+  const [revenues30d, expenses30d] = await Promise.all([
+    prisma.revenue.findMany({ where: { ...companyFilter, occurredAt: { gte: since } }, select: { amount: true, currency: true } }),
+    prisma.expense.findMany({ where: { ...companyFilter, occurredAt: { gte: since } }, select: { amount: true, currency: true } }),
   ]);
 
-  const dailyInflow = money(revenue30d._sum.amount ?? 0).dividedBy(30);
-  const dailyOutflow = money(expense30d._sum.amount ?? 0).dividedBy(30);
+  const revenueByCurrency = new Map<string, Money>();
+  for (const r of revenues30d) revenueByCurrency.set(r.currency, add(revenueByCurrency.get(r.currency) ?? ZERO, r.amount.toString()));
+  const expenseByCurrency = new Map<string, Money>();
+  for (const e of expenses30d) expenseByCurrency.set(e.currency, add(expenseByCurrency.get(e.currency) ?? ZERO, e.amount.toString()));
+
+  const revenue30dTotal = await sumToReference(revenueByCurrency, referenceCurrency);
+  const expense30dTotal = await sumToReference(expenseByCurrency, referenceCurrency);
+
+  const dailyInflow = revenue30dTotal.dividedBy(30);
+  const dailyOutflow = expense30dTotal.dividedBy(30);
   const netDaily = sub(dailyInflow, dailyOutflow);
 
   return {
     horizonDays: days,
+    referenceCurrency,
     projectedInflow: dailyInflow.times(days),
     projectedOutflow: dailyOutflow.times(days),
     projectedNet: netDaily.times(days),

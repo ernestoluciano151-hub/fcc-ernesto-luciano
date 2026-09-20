@@ -14,6 +14,8 @@ const LINKS = [
   { href: "/despesas", label: "Despesas" },
   { href: "/poupancas", label: "Poupanças" },
   { href: "/capital-giro", label: "Capital de Giro" },
+  { href: "/relatorios", label: "Relatórios (DRE)" },
+  { href: "/relatorios/fluxo-caixa", label: "Fluxo de Caixa" },
   { href: "/reconciliacao", label: "Reconciliação" },
 ];
 
