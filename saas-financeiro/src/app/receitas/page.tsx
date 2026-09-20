@@ -18,9 +18,20 @@ export default async function ReceitasPage() {
           <h1 className="text-xl font-semibold text-neutral-900">Receitas</h1>
           <p className="text-sm text-neutral-500">Cada receita entra automaticamente no ledger e no Dashboard.</p>
         </div>
-        <Link href="/receitas/nova" className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
-          Nova receita
-        </Link>
+        <div className="flex items-center gap-2">
+          {(["csv", "xlsx"] as const).map((fmt) => (
+            <a
+              key={fmt}
+              href={`/api/export/receitas?format=${fmt}`}
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+            >
+              {fmt.toUpperCase()}
+            </a>
+          ))}
+          <Link href="/receitas/nova" className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
+            Nova receita
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-neutral-200 bg-white">

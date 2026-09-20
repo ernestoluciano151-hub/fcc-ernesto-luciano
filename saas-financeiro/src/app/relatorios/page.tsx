@@ -40,6 +40,17 @@ export default async function RelatoriosPage({ searchParams }: { searchParams: P
           <h1 className="text-xl font-semibold text-neutral-900">Demonstração de Resultados (DRE)</h1>
           <p className="text-sm text-neutral-500">Receitas e despesas por categoria, derivadas diretamente dos lançamentos — nada digitado aqui.</p>
         </div>
+        <div className="flex gap-2">
+          {(["csv", "xlsx", "pdf"] as const).map((fmt) => (
+            <a
+              key={fmt}
+              href={`/api/export/dre?format=${fmt}&period=${period}${sp.companyId ? `&companyId=${sp.companyId}` : ""}`}
+              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-xs font-medium text-neutral-700 hover:bg-neutral-100"
+            >
+              {fmt.toUpperCase()}
+            </a>
+          ))}
+        </div>
       </div>
 
       <form method="GET" className="mt-4 flex flex-wrap items-end gap-3 rounded-xl border border-neutral-200 bg-white p-4">
