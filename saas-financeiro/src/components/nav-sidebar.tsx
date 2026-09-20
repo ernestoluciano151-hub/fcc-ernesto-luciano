@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/clientes", label: "Clientes" },
   { href: "/receitas", label: "Receitas" },
   { href: "/despesas", label: "Despesas" },
+  { href: "/poupancas", label: "Poupanças" },
   { href: "/capital-giro", label: "Capital de Giro" },
   { href: "/reconciliacao", label: "Reconciliação" },
 ];

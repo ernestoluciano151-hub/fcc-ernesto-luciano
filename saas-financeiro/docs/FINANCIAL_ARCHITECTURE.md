@@ -140,7 +140,7 @@ para produção (histórico auditável de alterações ao schema).
 | P6 | Arbitragem (CRUD + UI) | ✅ Entregue |
 | P7 | Cartões + Plafond/Limites | ✅ Entregue |
 | P8 | Capital de Giro (indicador de capacidade operacional) | ✅ Entregue |
-| P9 | Poupanças (objetivos + contribuições) | ⏳ Próxima |
+| P9 | Poupanças (objetivos + contribuições) | ✅ Entregue |
 | P10 | P&L + Cash Flow (relatórios completos, previsão 7/30/60/90) | 🔶 Base entregue |
 | P11 | Analytics (score de performance, ranking) | 🔶 Base entregue |
 | P12 | Relatórios (PDF/Excel/CSV) | ⏳ |
