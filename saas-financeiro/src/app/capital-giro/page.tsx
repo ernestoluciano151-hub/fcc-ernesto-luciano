@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 
 const CAPACIDADE_STYLE: Record<string, string> = {
   "Confortável": "bg-emerald-50 text-emerald-700",
-  "Apertada": "bg-amber-50 text-amber-700",
+  "Apertada": "bg-gold-100 text-gold-800",
   "Crítica": "bg-red-50 text-red-700",
 };
 

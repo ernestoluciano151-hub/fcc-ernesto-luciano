@@ -18,7 +18,7 @@ export default async function CartoesPage() {
           <h1 className="text-xl font-semibold text-neutral-900">Carregamento de cartões</h1>
           <p className="text-sm text-neutral-500">Apenas referências/tokens internos — nunca números completos, CVV ou PIN.</p>
         </div>
-        <Link href="/cartoes/nova" className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
+        <Link href="/cartoes/nova" className="rounded-lg bg-gold-600 px-4 py-2 text-sm font-medium text-black hover:bg-gold-500">
           Novo carregamento
         </Link>
       </div>

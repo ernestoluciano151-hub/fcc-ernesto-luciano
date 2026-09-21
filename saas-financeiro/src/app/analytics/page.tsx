@@ -4,16 +4,16 @@ export const dynamic = "force-dynamic";
 
 const CLASS_STYLE: Record<string, string> = {
   "Excelente": "bg-emerald-50 text-emerald-700",
-  "Bom": "bg-sky-50 text-sky-700",
-  "Atenção": "bg-amber-50 text-amber-700",
+  "Bom": "bg-gold-100 text-gold-700",
+  "Atenção": "bg-gold-100 text-gold-800",
   "Crítico": "bg-red-50 text-red-700",
 };
 
-function Bar({ pct, tone }: { pct: number; tone: "emerald" | "sky" | "amber" | "red" | "neutral" }) {
+function Bar({ pct, tone }: { pct: number; tone: "emerald" | "gold" | "goldLight" | "red" | "neutral" }) {
   const toneClass: Record<string, string> = {
     emerald: "bg-emerald-500",
-    sky: "bg-sky-500",
-    amber: "bg-amber-500",
+    gold: "bg-gold-500",
+    goldLight: "bg-gold-600",
     red: "bg-red-500",
     neutral: "bg-neutral-400",
   };
@@ -24,10 +24,10 @@ function Bar({ pct, tone }: { pct: number; tone: "emerald" | "sky" | "amber" | "
   );
 }
 
-function toneFor(score: number): "emerald" | "sky" | "amber" | "red" {
+function toneFor(score: number): "emerald" | "gold" | "goldLight" | "red" {
   if (score >= 80) return "emerald";
-  if (score >= 60) return "sky";
-  if (score >= 40) return "amber";
+  if (score >= 60) return "gold";
+  if (score >= 40) return "goldLight";
   return "red";
 }
 
@@ -47,7 +47,7 @@ export default async function AnalyticsPage() {
           <div key={s.companyId} className="rounded-xl border border-neutral-200 bg-white p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-neutral-900 text-sm font-semibold text-white">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-black text-sm font-semibold text-gold-300 ring-1 ring-gold-700">
                   {idx + 1}
                 </span>
                 <div>

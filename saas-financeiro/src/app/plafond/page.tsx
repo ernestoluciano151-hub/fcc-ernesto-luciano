@@ -71,7 +71,7 @@ export default async function PlafondPage() {
                     <td className="px-4 py-2">
                       <div className="tabular-nums">{formatMoney(a.usedAmount, a.currency)}</div>
                       <div className="mt-1 h-1.5 w-24 rounded-full bg-neutral-100">
-                        <div className="h-1.5 rounded-full bg-neutral-900" style={{ width: `${Math.min(pct, 100)}%` }} />
+                        <div className="h-1.5 rounded-full bg-gold-600" style={{ width: `${Math.min(pct, 100)}%` }} />
                       </div>
                     </td>
                     <td className="px-4 py-2 tabular-nums">{formatMoney(available, a.currency)}</td>

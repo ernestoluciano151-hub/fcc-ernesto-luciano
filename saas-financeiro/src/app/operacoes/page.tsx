@@ -16,7 +16,7 @@ const TYPE_LABEL: Record<string, string> = {
 
 const STATUS_STYLE: Record<string, string> = {
   PLANNED: "bg-neutral-100 text-neutral-600",
-  IN_PROGRESS: "bg-amber-50 text-amber-700",
+  IN_PROGRESS: "bg-gold-100 text-gold-800",
   COMPLETED: "bg-emerald-50 text-emerald-700",
   CANCELLED: "bg-neutral-100 text-neutral-500",
   REVERSED: "bg-red-50 text-red-700",

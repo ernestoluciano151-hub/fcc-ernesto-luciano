@@ -47,7 +47,7 @@ export default async function FluxoCaixaPage({ searchParams }: { searchParams: P
             {companies.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <button type="submit" className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
+        <button type="submit" className="rounded-lg bg-gold-600 px-4 py-2 text-sm font-medium text-black hover:bg-gold-500">
           Aplicar
         </button>
       </form>

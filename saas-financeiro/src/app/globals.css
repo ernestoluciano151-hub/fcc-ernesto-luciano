@@ -10,6 +10,27 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* ==========================================================================
+     Identidade visual — Financial Command Center
+     Preto (estrutura/chrome), dourado escuro (destaque/ação), verde (positivo),
+     vermelho (negativo). Paleta única, aplicada de forma consistente em toda
+     a app — nada de azuis/roxos avulsos.
+     ========================================================================== */
+  --color-gold-50: #faf6ea;
+  --color-gold-100: #f2e6c4;
+  --color-gold-200: #e6cd8f;
+  --color-gold-300: #d6b364;
+  --color-gold-400: #c29a45;
+  --color-gold-500: #a9812f;
+  --color-gold-600: #8c6a24;
+  --color-gold-700: #70541e;
+  --color-gold-800: #533d16;
+  --color-gold-900: #36280f;
+
+  --color-brand-black: #0a0a0a;
+  --color-brand-green: #047857;
+  --color-brand-red: #b91c1c;
 }
 
 @media (prefers-color-scheme: dark) {

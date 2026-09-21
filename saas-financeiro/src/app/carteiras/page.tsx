@@ -20,7 +20,7 @@ export default async function CarteirasPage() {
         </div>
         <Link
           href="/carteiras/nova"
-          className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800"
+          className="rounded-lg bg-gold-600 px-4 py-2 text-sm font-medium text-black hover:bg-gold-500"
         >
           Nova carteira
         </Link>

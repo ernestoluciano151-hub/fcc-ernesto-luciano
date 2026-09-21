@@ -45,7 +45,7 @@ export function AporteForm({ savingsGoalId, sources }: { savingsGoalId: string; 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}
       {state.success && <p className="text-sm text-emerald-600">Movimento registado.</p>}
 
-      <button type="submit" disabled={pending || sources.length === 0} className="w-full rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800 disabled:opacity-50">
+      <button type="submit" disabled={pending || sources.length === 0} className="w-full rounded-lg bg-gold-600 px-4 py-2 text-sm font-medium text-black hover:bg-gold-500 disabled:opacity-50">
         {pending ? "A registar…" : "Registar movimento"}
       </button>
     </form>

@@ -18,7 +18,7 @@ export default async function ArbitragemPage() {
           <h1 className="text-xl font-semibold text-neutral-900">Arbitragem cambial</h1>
           <p className="text-sm text-neutral-500">Cada registo cria uma Operação, atualiza o ledger e o Dashboard automaticamente.</p>
         </div>
-        <Link href="/arbitragem/nova" className="rounded-lg bg-neutral-900 px-4 py-2 text-sm font-medium text-white hover:bg-neutral-800">
+        <Link href="/arbitragem/nova" className="rounded-lg bg-gold-600 px-4 py-2 text-sm font-medium text-black hover:bg-gold-500">
           Nova arbitragem
         </Link>
       </div>

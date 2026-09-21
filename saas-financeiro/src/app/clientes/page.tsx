@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 const RISK_STYLE: Record<string, string> = {
   LOW: "bg-emerald-50 text-emerald-700",
-  MEDIUM: "bg-amber-50 text-amber-700",
+  MEDIUM: "bg-gold-100 text-gold-800",
   HIGH: "bg-red-50 text-red-700",
 };
 

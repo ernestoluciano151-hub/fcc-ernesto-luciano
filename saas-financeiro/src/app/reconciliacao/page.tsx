@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const STATUS_LABEL: Record<string, { label: string; className: string }> = {
   RECONCILED: { label: "Conciliado", className: "bg-emerald-50 text-emerald-700" },
   DIFFERENCE_FOUND: { label: "Diferença encontrada", className: "bg-red-50 text-red-700" },
-  UNDER_REVIEW: { label: "Em análise", className: "bg-amber-50 text-amber-700" },
+  UNDER_REVIEW: { label: "Em análise", className: "bg-gold-100 text-gold-800" },
 };
 
 export default async function ReconciliacaoPage() {
