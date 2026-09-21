@@ -6,7 +6,9 @@ import { prisma } from "@/lib/prisma";
 
 const CreateCustomerInput = z.object({
   companyId: z.string(),
+  type: z.enum(["INDIVIDUAL", "BUSINESS"]).default("INDIVIDUAL"),
   name: z.string().min(1),
+  documentId: z.string().optional(),
   contact: z.string().optional(),
   risk: z.enum(["LOW", "MEDIUM", "HIGH"]).default("LOW"),
 });
@@ -19,7 +21,9 @@ export async function createCustomer(
 ): Promise<CreateCustomerState> {
   const parsed = CreateCustomerInput.safeParse({
     companyId: formData.get("companyId"),
+    type: formData.get("type") || "INDIVIDUAL",
     name: formData.get("name"),
+    documentId: formData.get("documentId") || undefined,
     contact: formData.get("contact") || undefined,
     risk: formData.get("risk") || "LOW",
   });

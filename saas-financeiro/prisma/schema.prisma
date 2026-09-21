@@ -654,6 +654,11 @@ model Payable {
 // CLIENTES (CRM financeiro)
 // ----------------------------------------------------------------------------
 
+enum CustomerType {
+  INDIVIDUAL // Cliente particular (pessoa singular) — maioria das operações de arbitragem via cartão Visa/Mastercard
+  BUSINESS   // Cliente empresarial (pessoa coletiva)
+}
+
 enum CustomerRisk {
   LOW
   MEDIUM
@@ -664,7 +669,9 @@ model Customer {
   id         String       @id @default(cuid())
   companyId  String
   company    Company      @relation(fields: [companyId], references: [id])
+  type       CustomerType @default(INDIVIDUAL) // Particular (cartão Visa/Mastercard) ou Empresarial
   name       String
+  documentId String? // NIF (empresarial) ou BI/Passaporte (particular)
   contact    String?
   risk       CustomerRisk @default(LOW)
   isActive   Boolean      @default(true)

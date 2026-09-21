@@ -11,6 +11,12 @@ const RISK_STYLE: Record<string, string> = {
 
 const RISK_LABEL: Record<string, string> = { LOW: "Baixo", MEDIUM: "Médio", HIGH: "Alto" };
 
+const TYPE_LABEL: Record<string, string> = { INDIVIDUAL: "Particular", BUSINESS: "Empresarial" };
+const TYPE_STYLE: Record<string, string> = {
+  INDIVIDUAL: "bg-neutral-100 text-neutral-700",
+  BUSINESS: "bg-brand-black text-gold-300",
+};
+
 export default async function ClientesPage() {
   const [customers, companies] = await Promise.all([
     prisma.customer.findMany({
@@ -43,7 +49,9 @@ export default async function ClientesPage() {
             <thead className="border-b border-neutral-200 bg-neutral-50 text-left text-neutral-500">
               <tr>
                 <th className="px-4 py-2 font-medium">Nome</th>
+                <th className="px-4 py-2 font-medium">Tipo</th>
                 <th className="px-4 py-2 font-medium">Empresa</th>
+                <th className="px-4 py-2 font-medium">Documento</th>
                 <th className="px-4 py-2 font-medium">Contacto</th>
                 <th className="px-4 py-2 font-medium">Operações</th>
                 <th className="px-4 py-2 font-medium">Risco</th>
@@ -53,7 +61,11 @@ export default async function ClientesPage() {
               {customers.map((c) => (
                 <tr key={c.id} className="border-b border-neutral-100 last:border-0">
                   <td className="px-4 py-2 font-medium text-neutral-900">{c.name}</td>
+                  <td className="px-4 py-2">
+                    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_STYLE[c.type]}`}>{TYPE_LABEL[c.type]}</span>
+                  </td>
                   <td className="px-4 py-2">{c.company.name}</td>
+                  <td className="px-4 py-2">{c.documentId ?? "—"}</td>
                   <td className="px-4 py-2">{c.contact ?? "—"}</td>
                   <td className="px-4 py-2 tabular-nums">{c.operations.length + c.sales.length}</td>
                   <td className="px-4 py-2">
@@ -63,7 +75,7 @@ export default async function ClientesPage() {
               ))}
               {customers.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-4 py-6 text-center text-neutral-400">Sem clientes registados.</td>
+                  <td colSpan={7} className="px-4 py-6 text-center text-neutral-400">Sem clientes registados.</td>
                 </tr>
               )}
             </tbody>
