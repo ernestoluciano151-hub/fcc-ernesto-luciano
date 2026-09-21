@@ -33,15 +33,29 @@
   --color-brand-red: #b91c1c;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* A app é sempre de tema claro (todas as páginas usam fundos/texto claros
+   explícitos) — não segue o esquema de cores escuro do sistema operativo.
+   Sem isto, campos de formulário sem cor explícita herdavam texto claro
+   sobre fundo branco em dispositivos com "dark mode" ativo, ficando
+   invisíveis ao escrever. */
+:root {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+input,
+select,
+textarea {
+  color: #171717;
+  background-color: #ffffff;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #a3a3a3;
 }

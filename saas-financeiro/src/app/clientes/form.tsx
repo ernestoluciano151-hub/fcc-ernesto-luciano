@@ -61,9 +61,15 @@ export function ClienteForm({ companies }: { companies: { id: string; name: stri
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-neutral-700">Contacto</label>
-        <input name="contact" className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" placeholder="Telefone ou email" />
+        <label className="block text-sm font-medium text-neutral-700">Telefone</label>
+        <input name="phone" type="tel" className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" placeholder="Ex: 923 000 000" />
       </div>
+
+      <div>
+        <label className="block text-sm font-medium text-neutral-700">Email / outro contacto</label>
+        <input name="contact" className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" placeholder="Opcional" />
+      </div>
+
       <div>
         <label className="block text-sm font-medium text-neutral-700">Risco</label>
         <select name="risk" className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm">
@@ -71,6 +77,11 @@ export function ClienteForm({ companies }: { companies: { id: string; name: stri
           <option value="MEDIUM">Médio</option>
           <option value="HIGH">Alto</option>
         </select>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-neutral-700">Notas / observações</label>
+        <textarea name="notes" rows={3} className="mt-1 w-full rounded-md border border-neutral-300 px-3 py-2 text-sm" placeholder="Ex: preferências, horários, histórico relevante…" />
       </div>
 
       {state.error && <p className="text-sm text-red-600">{state.error}</p>}

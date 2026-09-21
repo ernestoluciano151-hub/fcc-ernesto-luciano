@@ -672,7 +672,9 @@ model Customer {
   type       CustomerType @default(INDIVIDUAL) // Particular (cartão Visa/Mastercard) ou Empresarial
   name       String
   documentId String? // NIF (empresarial) ou BI/Passaporte (particular)
-  contact    String?
+  phone      String? // Telefone
+  contact    String? // Email ou outro contacto alternativo
+  notes      String? // Notas/observações livres
   risk       CustomerRisk @default(LOW)
   isActive   Boolean      @default(true)
   createdAt  DateTime     @default(now())
