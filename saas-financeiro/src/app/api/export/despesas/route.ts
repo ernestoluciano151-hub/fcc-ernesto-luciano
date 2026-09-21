@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
   if (format === "xlsx") {
     const buffer = buildWorkbookBuffer([{ name: "Despesas", headers, rows }]);
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="despesas.xlsx"`,

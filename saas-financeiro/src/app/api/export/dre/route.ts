@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         rows: pl.monthlyTrend.map((t) => [t.month, t.revenue.toFixed(2), t.expense.toFixed(2), t.profit.toFixed(2)]),
       },
     ]);
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "Content-Disposition": `attachment; filename="${filename}.xlsx"`,
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
 
   if (format === "pdf") {
     const bytes = await buildDrePdf(pl, scopeLabel);
-    return new NextResponse(Buffer.from(bytes), {
+    return new NextResponse(new Uint8Array(bytes), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": `attachment; filename="${filename}.pdf"`,
