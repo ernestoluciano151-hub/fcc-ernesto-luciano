@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { add, percent, sub } from "@/lib/finance/money";
 import { generateOperationCode } from "@/lib/finance/operation-code";
 import { getOrCreateLogicalLedgerAccount, postLedgerBatch } from "@/lib/ledger/ledger-engine";
-import { getDefaultUserId } from "@/server/finance/get-default-user";
+import { getCurrentUserId } from "@/lib/auth/current-user";
 
 // ============================================================================
 // PRINCÍPIO FUNDAMENTAL (secção 26 do pedido): registar UMA operação de
@@ -65,7 +65,7 @@ export async function createArbitrageOperation(
     return { error: parsed.error.issues.map((i) => i.message).join("; ") };
   }
   const data = parsed.data;
-  const createdById = await getDefaultUserId();
+  const createdById = await getCurrentUserId();
 
   const totalCosts = add(add(data.costs, data.commissions), data.fees);
   const grossProfit = sub(data.finalRevenue, data.capitalUsed);

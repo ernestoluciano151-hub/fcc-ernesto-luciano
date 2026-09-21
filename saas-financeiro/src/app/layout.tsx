@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NavSidebar } from "@/components/nav-sidebar";
+import { auth } from "@/lib/auth/auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -18,14 +19,16 @@ export const metadata: Metadata = {
   description: "Sistema interno de gestão empresarial e financeira",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const session = await auth();
+
   return (
     <html
       lang="pt"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex">
-        <NavSidebar />
+        <NavSidebar user={session?.user} />
         <div className="flex-1">{children}</div>
       </body>
     </html>

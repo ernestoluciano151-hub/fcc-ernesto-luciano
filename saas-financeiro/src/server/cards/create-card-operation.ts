@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { add, sub } from "@/lib/finance/money";
 import { generateOperationCode } from "@/lib/finance/operation-code";
 import { getOrCreateLogicalLedgerAccount, postLedgerBatch } from "@/lib/ledger/ledger-engine";
-import { getDefaultUserId } from "@/server/finance/get-default-user";
+import { getCurrentUserId } from "@/lib/auth/current-user";
 
 // ============================================================================
 // Carregamento de cartões (secção 7 do pedido). NUNCA guardar número
@@ -49,7 +49,7 @@ export async function createCardOperation(
     return { error: parsed.error.issues.map((i) => i.message).join("; ") };
   }
   const data = parsed.data;
-  const createdById = await getDefaultUserId();
+  const createdById = await getCurrentUserId();
 
   const profit = sub(data.receivedAmount, add(data.loadedAmount, data.operationCost));
   const code = await generateOperationCode();

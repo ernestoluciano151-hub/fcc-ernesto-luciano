@@ -144,7 +144,7 @@ para produção (histórico auditável de alterações ao schema).
 | P10 | P&L + Cash Flow (relatórios completos, previsão 7/30/60/90) | ✅ Entregue |
 | P11 | Analytics (score de performance, ranking) | ✅ Entregue |
 | P12 | Relatórios (PDF/Excel/CSV) | ✅ Entregue |
-| P13 | Auditoria + Segurança (2FA, rate limiting, CSRF) | 🔶 Base entregue |
+| P13 | Auditoria + Segurança (login real com Auth.js, 2FA TOTP, rate limiting, audit log) | ✅ Entregue |
 | P14 | Testes (unitários, integração, E2E) | ⏳ |
 | P15 | Production hardening | ⏳ |
 

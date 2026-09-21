@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { postLedgerBatch, getOrCreateLogicalLedgerAccount } from "@/lib/ledger/ledger-engine";
 import { money } from "@/lib/finance/money";
-import { getDefaultUserId } from "@/server/finance/get-default-user";
+import { getCurrentUserId } from "@/lib/auth/current-user";
 import { getWorkingCapitalSummary } from "@/lib/finance/working-capital";
 
 const EXPENSE_CATEGORIES = [
@@ -44,7 +44,7 @@ export async function createExpense(
   }
   const data = parsed.data;
   const amount = money(data.amount);
-  const responsibleId = await getDefaultUserId();
+  const responsibleId = await getCurrentUserId();
 
   await prisma.$transaction(async (tx) => {
     await tx.expense.create({

@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getDefaultUserId } from "@/server/finance/get-default-user";
+import { getCurrentUserId } from "@/lib/auth/current-user";
 
 const UpdateMinCapitalInput = z.object({
   companyId: z.string(),
@@ -34,7 +34,7 @@ export async function updateMinCapital(
 
   await prisma.auditLog.create({
     data: {
-      actorId: await getDefaultUserId(),
+      actorId: await getCurrentUserId(),
       entityType: "Company",
       entityId: data.companyId,
       action: "UPDATE",
