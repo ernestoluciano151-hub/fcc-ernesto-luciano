@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOutAction } from "@/server/auth/sign-out-action";
+import { can } from "@/lib/auth/rbac";
+import type { Role } from "@prisma/client";
 
 const LINKS = [
   { href: "/dashboard", label: "Dashboard" },
@@ -25,12 +27,17 @@ const LINKS = [
   { href: "/definicoes/seguranca", label: "Segurança" },
 ];
 
+const ADMIN_LINKS = [{ href: "/definicoes/utilizadores", label: "Utilizadores" }];
+
 type NavUser = { name?: string | null; email?: string | null; role?: string } | null;
 
 export function NavSidebar({ user }: { user?: NavUser }) {
   const pathname = usePathname();
 
   if (pathname === "/login") return null;
+
+  const canManageUsers = !!user?.role && can(user.role as Role, "MANAGE_USERS");
+  const links = canManageUsers ? [...LINKS, ...ADMIN_LINKS] : LINKS;
 
   return (
     <nav className="flex w-56 shrink-0 flex-col justify-between border-r border-gold-900/40 bg-brand-black p-4">
@@ -40,7 +47,7 @@ export function NavSidebar({ user }: { user?: NavUser }) {
           <p className="text-sm font-semibold tracking-wide text-gold-300">Financial Command Center</p>
         </div>
         <ul className="mt-5 space-y-0.5">
-          {LINKS.map((l) => {
+          {links.map((l) => {
             const isActive = pathname === l.href || (l.href !== "/dashboard" && pathname?.startsWith(l.href + "/"));
             return (
               <li key={l.href}>
